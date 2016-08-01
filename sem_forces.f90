@@ -56,25 +56,49 @@ program matrix
  call r8mat_print ( n, n, smat, '  Forces matrix between Atom 1 and Atom 2:' )
   it_max = 1000
  call jacobi_eigenvalue ( n, smat, it_max, v, d, it_num, rot_num )
- call r8vec_print ( n, d, '  Eigenvalues D:' )
- call r8mat_print ( n, n, v, '  Eigenvector matrix V:' )
- call r8mat_is_eigen_right ( n, n, smat, v, d, error_frobenius )
+ write(*,"(a)") &
+  " ", &
+  " ", &
+  "Eigen Values:", &
+  " "
+ do i=1,3
+  write(*, "(E14.5E2,a)", advance="no") &
+   d(i), &
+   " "
+ end do
+ write (*,"(a)", advance="yes") &
+  " ", &
+  " ", &
+  "Eigen Vectors:", &
+  " "
+ do i=1,3
+  do j=1,3
+   write(*, "(E14.6E2,a)" , advance="no") &
+     v(i,j), &
+     "  "
+  end do
+   print*
+   end do
+call r8mat_is_eigen_right ( n, n, smat, v, d, error_frobenius )
   write ( *, '(a)' ) ''
-  write ( *, '(a,g14.6)' ) &
-   '  Frobenius norm error in eigensystem A*V-D*V = ', &  
+  write ( *, '(a,E14.6E2)' ) &
+   'Frobenius norm error in eigensystem A*V-D*V = ', &  
    error_frobenius 
 
  open(unit=51,file="coord")
   allocate(atomcoord(5,nbatoms))
   read(51,*) atomcoord
  close(51)
- atomcoord=transpose(atomcoord)
+ atomcoord = transpose(atomcoord)
  xvector = atomcoord(atm2,3) - atomcoord(atm1,3)
  yvector = atomcoord(atm2,4) - atomcoord(atm1,4)
  zvector = atomcoord(atm2,5) - atomcoord(atm1,5)
- print*
- print*, "Direction vector between Atom 1 and Atom 2:"
- print*
- print*, xvector, yvector, zvector
+ write (*, "(a)") &
+ " ", &
+ "Direction vector between Atom 1 and Atom 2:", &
+ " "
+ write (*, "(E14.6E2)" ,advance="NO") xvector
+ write (*, "(E14.6E2)" ,advance="NO") yvector
+ write (*, "(E14.6E2)") zvector
 end program matrix
 
