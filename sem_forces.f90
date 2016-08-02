@@ -1,5 +1,5 @@
 program matrix
- implicit none
+implicit none
  real*8,allocatable :: mat(:,:), atomcoord (:,:)
  real*8,dimension(3,3) :: smat, egvec
  real*8,dimension(3) ::  egval
@@ -52,26 +52,28 @@ program matrix
  end do
  
  smat=-1*transpose(smat)
-  
+ 
  write (*,"(a)") ""
  write (*,"(5a)") "-1 * Cartesian Force Matrix (kcal/mol) between atom ", trim(atl(atm1)), " and atom ", trim(atl(atm2)), " :"
  write (*,"(a)") ""
  do i=1,3
   do j=1,3
-    write(*, "(E14.6E2,a)" , advance="no") smat(i,j)*627.509, ""
+    write(*, "(E14.6E2,a)" , advance="no") smat(i,j), ""
   end do
   write (*,"(a)") ""
  end do
 
- call jacobi_eigenvalue ( o, smat, it_max, egvec, egval, it_num, rot_num )
+ call jacobi_eigenvalue ( 3, smat, it_max, egvec, egval, it_num, rot_num )
+    write ( *, '(a,i4)' ) '  Number of iterations = ', it_num
+  write ( *, '(a,i4)' ) '  Number of rotations  = ', rot_num
 
  write(*,"(a)") "", "Eigen Values (kcal/mol):", ""
- do i=3,1,-1
-  write(*, "(E14.5E2,a)", advance="no") egval(i)*627.509, ""
+ do i=1,3
+  write(*, "(E14.5E2,a)", advance="no") egval(i), ""
  end do
  write (*,"(a)") "", "", "Eigen Vectors:", ""
  do i=1,3
-  do j=3,1,-1
+  do j=1,3
    write(*, "(E14.6E2,a)" , advance="no") &
      egvec(i,j), &
      "  "
@@ -97,15 +99,14 @@ call r8mat_is_eigen_right ( o, o, smat, egvec, egval, error_frobenius )
  write (*,"(E14.6E2)" ,advance="NO") xvector
  write (*,"(E14.6E2)" ,advance="NO") yvector
  write (*,"(E14.6E2)") zvector
- 
- k1 = egval(3) * abs( (egvec(1,3) * xvector) + (egvec(1,2) * yvector) + (egvec(1,1) * zvector)) 
- k2 = egval(2) * abs( (egvec(2,3) * xvector) + (egvec(2,2) * yvector) + (egvec(2,1) * zvector)) 
- k3 = egval(1) * abs( (egvec(3,3) * xvector) + (egvec(3,2) * yvector) + (egvec(3,1) * zvector)) 
+ k1 = egval(1) * abs( (egvec(1,1) * xvector) + (egvec(1,2) * yvector) + (egvec(1,3) * zvector)) 
+ k2 = egval(2) * abs( (egvec(2,1) * xvector) + (egvec(2,2) * yvector) + (egvec(2,3) * zvector)) 
+ k3 = egval(3) * abs( (egvec(3,1) * xvector) + (egvec(3,2) * yvector) + (egvec(3,3) * zvector)) 
 
- kf=(k1+k2+k3)*627.509
+ kf=(k1+k2+k3)
  write (*,"(a)") ""
  write (*,"(5a,F10.4,a)") "Approximate force constant between atom ", trim(atl(atm1)), " and atom ", trim(atl(atm2)), &
- " : ", kf, " kcal/mol"
+ " : ", kf*2240.874995, " kcal/mol"
  deallocate (mat)
  deallocate (atl)
 end program matrix

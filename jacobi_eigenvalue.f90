@@ -209,29 +209,9 @@ subroutine jacobi_eigenvalue ( n, a, it_max, v, d, it_num, rot_num )
 !
 !  Ascending sort the eigenvalues and eigenvectors.
 !
-  do k = 1, n - 1
 
-    m = k
 
-    do l = k + 1, n
-      if ( d(l) < d(m) ) then
-        m = l
-      end if
-    end do
 
-    if ( m /= k ) then
-
-      t    = d(m)
-      d(m) = d(k)
-      d(k) = t
-
-      w(1:n)   = v(1:n,m)
-      v(1:n,m) = v(1:n,k)
-      v(1:n,k) = w(1:n)
-
-    end if
-
-  end do
 
   return
 end
