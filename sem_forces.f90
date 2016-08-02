@@ -1,46 +1,42 @@
 program matrix
- real*8,allocatable :: mat(:,:)
- real*8,dimension(3,3) :: smat
- character(len=8),allocatable :: atomlist (:)
- real*8,allocatable :: atomcoord(:,:)
+ real*8,allocatable :: mat(:,:), atomcoord (:,:)
+ real*8,dimension(3,3) :: smat, egvec
+ real*8,dimension(3) ::  egval
 
- real*4 :: xvector
- real*4 :: yvector
- real*4 :: zvector
-
- integer :: atm1
- integer :: atm2
- integer :: smx
- integer :: smy
- integer :: nbatoms
- integer :: matsize
-
- integer ( kind = 4 ), parameter :: n = 3
- real ( kind = 8 ) d(n)
- real ( kind = 8 ) error_frobenius
- integer ( kind = 4 ) it_max
- integer ( kind = 4 ) it_num
- integer ( kind = 4 ) rot_num
- real ( kind = 8 ) v(n,n)
+ character(len=4),allocatable :: crdlist (:)
+ character(:),allocatable :: atmlc
+ character(len=4),allocatable :: atl (:)
  
-! print *, "Number of atmoms ?"
-! read(*,*) nbatoms
+ integer :: n = 1
+ real*8 :: xvector, yvector, zvector
+ integer*4 :: atm1, atm2, smx, smy, nbatoms, matsize
+ 
+ integer*4 :: o = 3, it_max=1000, it_num, rot_num
+ real*8 :: error_frobenius
+ 
+ write (*,"(a)") "Please input the number of atoms ?"
+ read(*,*) nbatoms
 
- nbatoms=7
  matsize=nbatoms*3
 
  open(unit=50,file="matrix")
-  allocate(atomlist(matsize))
-  read(50,*) atomlist
-  print *, "Atomlist : "
-  print *
-  print *, atomlist
-!  print *, "Atom number 1 ?"
-!  read(*,*) atm1
-!  print *, "Atom number 2 ?"
-!  read(*,*) atm2
-  atm1 = 1
-  atm2 = 2
+  allocate(crdlist(matsize))
+  read(50,*) crdlist
+  allocate(atl(nbatoms))
+  do i=1,nbatoms
+   atmlc = crdlist(n)
+   atmlc = trim(atmlc(2:4))
+   atl (i) = atmlc
+   n=n+3
+  end do
+  write (*,"(a)") " ", "This is the list of atoms:"
+  do i=1,nbatoms
+   write (*,"(a)", advance="no") atl(i)
+  end do
+  write (*,"(a)") " ", " ", "Select atom number one:"
+  read(*,*) atm1
+  write (*,"(a)") " ", "Select atom number two:"
+  read(*,*) atm2
   smx=((atm1*3)-3)
   smy=((atm2*3)-3)
   allocate(mat(matsize,matsize))
@@ -48,42 +44,41 @@ program matrix
  close(50)
  do i=1,3
   do j=1,3
-   smat(i,j) = mat((smx+i),(smy+j))*627.509
+   smat(i,j) = mat((smx+i),(smy+j))
   end do
  end do
+ 
  smat=-1*transpose(smat)
-
- call r8mat_print ( n, n, smat, '  Forces matrix between Atom 1 and Atom 2:' )
-  it_max = 1000
- call jacobi_eigenvalue ( n, smat, it_max, v, d, it_num, rot_num )
- write(*,"(a)") &
-  " ", &
-  " ", &
-  "Eigen Values:", &
-  " "
- do i=1,3
-  write(*, "(E14.5E2,a)", advance="no") &
-   d(i), &
-   " "
- end do
- write (*,"(a)", advance="yes") &
-  " ", &
-  " ", &
-  "Eigen Vectors:", &
-  " "
+  
+ write (*,"(a)") " "
+ write (*,"(5a)") "-1 * Cartesian Force Matrix (kcal/mol) between atom ", trim(atl(atm1)), " and atom ", trim(atl(atm2)), " :"
+ write (*,"(a)") " "
  do i=1,3
   do j=1,3
+    write(*, "(E14.6E2,a)" , advance="no") smat(i,j)*627.509, " "
+  end do
+  write (*,"(a)") " "
+ end do
+
+ call jacobi_eigenvalue ( o, smat, it_max, egvec, egval, it_num, rot_num )
+
+ write(*,"(a)") " ", "Eigen Values (kcal/mol):", " "
+ do i=3,1,-1
+  write(*, "(E14.5E2,a)", advance="no") egval(i)*627.509, " "
+ end do
+ write (*,"(a)") " ", " ", "Eigen Vectors:", " "
+ do i=1,3
+  do j=3,1,-1
    write(*, "(E14.6E2,a)" , advance="no") &
-     v(i,j), &
+     egvec(i,j), &
      "  "
   end do
-   print*
-   end do
-call r8mat_is_eigen_right ( n, n, smat, v, d, error_frobenius )
-  write ( *, '(a)' ) ''
-  write ( *, '(a,E14.6E2)' ) &
-   'Frobenius norm error in eigensystem A*V-D*V = ', &  
-   error_frobenius 
+  write (*,"(a)") " "  
+ end do
+
+call r8mat_is_eigen_right ( o, o, smat, egvec, egval, error_frobenius )
+  write ( *, '(a)' ) " "
+  write ( *, '(a,E14.6E2)' ) 'Frobenius norm error in eigensystem A*V-D*V =', error_frobenius 
 
  open(unit=51,file="coord")
   allocate(atomcoord(5,nbatoms))
@@ -93,12 +88,13 @@ call r8mat_is_eigen_right ( n, n, smat, v, d, error_frobenius )
  xvector = atomcoord(atm2,3) - atomcoord(atm1,3)
  yvector = atomcoord(atm2,4) - atomcoord(atm1,4)
  zvector = atomcoord(atm2,5) - atomcoord(atm1,5)
- write (*, "(a)") &
- " ", &
- "Direction vector between Atom 1 and Atom 2:", &
- " "
+ write (*, '(a)' ) ""
+ write (*,"(5a)") "Direction vector between atom ", trim(atl(atm1)), " and atom ", trim(atl(atm2)), " :"
+ write (*, '(a)' ) ""
  write (*, "(E14.6E2)" ,advance="NO") xvector
  write (*, "(E14.6E2)" ,advance="NO") yvector
  write (*, "(E14.6E2)") zvector
+ deallocate (mat)
+ deallocate (atl)
 end program matrix
 
