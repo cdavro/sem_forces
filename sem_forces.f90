@@ -8,8 +8,8 @@ implicit none
  real,dimension(3,3) :: satmat, egvec
  real,dimension(3) ::  egval
 
- character(len=2),allocatable :: atmlna (:)
- character(len=4), allocatable :: atmlnbc (:)
+ character(len=2),allocatable :: atmlna (:) 
+ character(len=8),dimension(:),allocatable :: atmlnbc (:)
 
   
  integer :: o = 3, it_max=1000, it_num, rot_num
@@ -27,7 +27,7 @@ implicit none
 
  matsize=nbatm*3
  
- open(unit=50,file="toc",status='old', access='sequential', form='formatted', action='read')
+ open(unit=50,file="fchk",status='old', access='sequential', form='formatted', action='read')
   allocate(atmcrd(5,nbatm))
   allocate(atmlnb(matsize))
   allocate(atmlan(matsize))
@@ -42,19 +42,21 @@ implicit none
   read(50,*) revar ! advance one line
     read(50,*) atmat
  close(50)
- print*, atmlnb
- allocate(atmlnbc(matsize))
- do i=1,matsize
- print*, atmlnb(i) 
- write(atmlnbc(i),*) atmlnb(i) 
+! allocate(atmlnbc(matsize))
+! do i=1,matsize
+! print*, i
+! print*, atmlnb(i)
+! print*, atmlnbc(i)
+! write(atmlnbc(i),*) atmlnb(i) 
+! print*, "hola"
 ! atmlnbc(i)=atmlnb(i)
-
- enddo
 ! write(atmlnbc,*) atmlnb
- print*, "hola"
+
+! end do
+! print*, "hola"
  write (*,"(a)") "", "This is the list of atoms:"
  do i=1,nbatm
-   write (*,"(2a)", advance="no") trim(atmlna(i*3-2)), trim(atmlnbc((i*3-2)))
+   write (*,"(a,I0,a)" ,advance="NO") trim(atmlna(i*3-2)), atmlnb((i*3-2)), " "
  end do
  write (*,"(a)") "", "", "Select atom number one:"
  read(*,*) atm1
@@ -117,7 +119,8 @@ call r8mat_is_eigen_right ( o, o, satmat, egvec, egval, error_frobenius )
  k3 = egval(3) * abs( (egvec(3,1) * xvector) + (egvec(3,2) * yvector) + (egvec(3,3) * zvector)) 
 
  kf=(k1+k2+k3)
- write (*,"(a)") ""
+ write(*,"(E14.6E2)") kf
+! write (*,"(a)") ""
 ! write (*,"(5a,F10.4,a)") "Approximate force constant between atom ", trim(atl(atm1)), " and atom ", trim(atl(atm2)), &
 ! " : ", kf*2240.874995, " kcal/mol"
 end program matrix
