@@ -108,7 +108,7 @@ write (*,"(2a,I0,2a,I0,a)") "Interatomic Cartesian Force Matrix (a.u.) between a
  xvector = (atmcrd(3,atm2) - atmcrd(3,atm1))
  yvector = (atmcrd(4,atm2) - atmcrd(4,atm1))
  zvector = (atmcrd(5,atm2) - atmcrd(5,atm1))
- dist = SQRT(abs(xvector*2)+abs(yvector**2)+abs(zvector**2)) 
+ dist = SQRT(abs(xvector**2)+abs(yvector**2)+abs(zvector**2)) 
  dvector(1) = xvector
  dvector(2) = yvector
  dvector(3) = zvector
