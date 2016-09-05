@@ -17,7 +17,7 @@ program sem_forces
  integer, allocatable          :: atmlnb (:), atmlan (:)
  character(len=2), allocatable :: atmlna (:) 
  real(dp), dimension(3)        :: dvector
- real(dp)                      :: dist, kf
+ real(dp)                      :: dist, kr, kl, kavg
  integer                       :: atm1, atm2, smx, smy, nbatm, matsize
  integer                       :: i, j
 
@@ -138,27 +138,33 @@ program sem_forces
  write(*, " (a) ")
 !END PRINT DISTANCE
 !CALCULATE RFC AND PRINT
- kf = 0.0_dp
+ kr = 0.0_dp
  do i=1,3
-  kf = kf + WR(i) * abs(dot_product(VR(:,i), dvector))
+  kr = kr + WR(i) * abs(dot_product(VR(:,i), dvector))
  end do 
  write(*, " (a) ")
  write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Force constant (k(r-r0)^2) using right EV between atom " ,&
                                       trim(atmlna(atm1*3-2)), atmlnb(atm1*3-2), " and atom ",& 
                                       trim(atmlna(atm2*3-2)), atmlnb(atm2*3-2), " : ",&
-                                      kf*(HKC/(BA**2))*0.5, " kcal*mol^-1*Â^-2"
+                                      kr*(HKC/(BA**2))*0.5, " kcal*mol^-1*Â^-2"
 !END CALCULATE RFC AND PRINT
 !CALCULATE LFC AND PRINT
- kf = 0.0_dp
+ kl = 0.0_dp
  do i=1,3
-  kf = kf + WR(i) * abs(dot_product(VL(:,i), dvector))
+  kl = kl + WR(i) * abs(dot_product(VL(:,i), dvector))
  end do
  write(*, " (a) ")
  write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Force constant (k(r-r0)^2) using left EV between atom " ,&
                                       trim(atmlna(atm1*3-2)), atmlnb(atm1*3-2), " and atom ",& 
                                       trim(atmlna(atm2*3-2)), atmlnb(atm2*3-2), " : ",&
-                                      kf*(HKC/(BA**2))*0.5, " kcal*mol^-1*Å^-2."
+                                      kl*(HKC/(BA**2))*0.5, " kcal*mol^-1*Å^-2."
 !END CALCULATE LFC AND PRINT
+ kavg = (kr + kl) * 0.5
+ write(*, " (a) ")
+ write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Averaged force constant (k(r-r0)^2) between atom " ,&
+                                      trim(atmlna(atm1*3-2)), atmlnb(atm1*3-2), " and atom ",&
+                                      trim(atmlna(atm2*3-2)), atmlnb(atm2*3-2), " : ",&
+                                      kavg*(HKC/(BA**2))*0.5, " kcal*mol^-1*Å^-2."
  write(*, " (a) ")
   deallocate(atmcrd)
   deallocate(atmlnb)
