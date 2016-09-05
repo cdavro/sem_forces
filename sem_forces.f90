@@ -1,6 +1,13 @@
+! Seminario method for bond force constant
+! Reference: Seminario, J. M. Int. J. Quantum Chem. 1996, 60, 1271.
+! Author: Rolf David
+! Date: 05/09/2016
+! Lastest modification: 05/09/2016
+! Version: 1.0.0
+
 program sem_forces
  implicit none
- integer, parameter :: dp=kind(0.0d0)         ! doublz precision
+ integer, parameter :: dp=kind(0.0d0)         ! double precision
  integer, parameter :: sp=kind(0.0)           ! single precision
  
  real(dp), parameter           :: BA = 0.529177249 ! Bohr to Angstrom
