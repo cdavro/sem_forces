@@ -4,14 +4,32 @@
 ! Date: 05/09/2016
 ! Lastest modification: 05/09/2016
 ! Version: 1.1.0
+module mathmodule
+implicit none
+contains
+
+function cross(a,b)
+ implicit none
+ integer, parameter :: dp=kind(0.0d0)         ! double precision
+ integer, parameter :: sp=kind(0.0)           ! single precision
+ real(dp), dimension(3), intent(in) :: a,b
+ real(dp), dimension(3)             :: cross
+ cross(1)=a(2) * b(3) - a(3) * b(2)
+ cross(2)=a(3) * b(1) - a(1) * b(3)
+ cross(3)=a(1) * b(2) - a(2) * b(1)
+end function cross
+
+end module mathmodule
 
 program sem_forces
+ use mathmodule 
  implicit none
  integer, parameter :: dp=kind(0.0d0)         ! double precision
  integer, parameter :: sp=kind(0.0)           ! single precision
  
  real(dp), parameter           :: BA = 0.529177249 ! Bohr to Angstrom
  real(dp), parameter           :: HKC = 627.5095   ! Hartree to kcal/mol
+ real(dp), parameter           :: pi = 3.1415926535897932384
  integer, parameter            :: N = 3 
  integer, parameter            :: LDA = N, LDVL = N, LDVR = N
  integer, parameter            :: LWMAX = 1000
@@ -25,10 +43,11 @@ program sem_forces
  character(len=2), allocatable :: atmlna (:) 
  real(dp), dimension(3)        :: vecAB, vecBC, vecNABC, vecPA, vecPC ! vectors
  real(dp)                      :: distAB, distBC, distNABC ! distance
+ real(dp)                      :: angleABC ! angle
  real(dp)                      :: kRAB, kRBC, kLAB, kLBC, kavgAB, kavgBC, kRABC, kLABC, kavgABC ! force constant
  integer                       :: atmA, atmB, atmC, smA, smB, smC, nbatm, matsize
  integer                       :: i, j
-
+ 
  external DGEEV
  
 !Read file 
@@ -236,27 +255,22 @@ program sem_forces
   end do
   distAB = SQRT(abs(vecAB(1)**2)+abs(vecAB(2)**2)+abs(vecAB(3)**2)) ! norm
   distBC = SQRT(abs(vecBC(1)**2)+abs(vecBC(2)**2)+abs(vecBC(3)**2)) ! 
+  angleABC = dot_product((-1*vecAB),vecBC) / (distAB * distBC) ! store the cos(angleABC)
   do i=1,3
    vecAB(i) = vecAB(i)/abs(distAB) ! unit vector
    vecBC(i) = vecBC(i)/abs(distBC) !
   end do
  
 !Calculate the vector perpendicular to the plane ABC, its norm and normalize
-  vecNABC(1)=((vecAB(2) * vecBC(3)) - (vecAB(3) * vecBC(2))) ! vector 
-  vecNABC(2)=((vecAB(3) * vecBC(1)) - (vecAB(1) * vecBC(3))) !
-  vecNABC(3)=((vecAB(1) * vecBC(2)) - (vecAB(2) * vecBC(1))) !
+  vecNABC = cross(vecAB,vecBC)
   distNABC=SQRT(abs(vecNABC(1)**2)+abs(vecNABC(2)**2)+abs(vecNABC(3)**2)) ! norm
   do i=1,3
    vecNABC(i)=vecNABC(i)/abs(distNABC) ! normalize
   enddo
  
 !Calculate unit vector perpendicaulr to AB and BC on the ABC plane
-  vecPA(1)=((vecNABC(2) * vecAB(3)) - (vecNABC(3) * vecAB(2))) ! First one
-  vecPA(2)=((vecNABC(3) * vecAB(1)) - (vecNABC(1) * vecAB(3))) !
-  vecPA(3)=((vecNABC(1) * vecAB(2)) - (vecNABC(2) * vecAB(1))) !
-  vecPC(1)=((vecNABC(2) * vecBC(3)) - (vecNABC(3) * vecBC(2))) ! Second
-  vecPC(2)=((vecNABC(3) * vecBC(1)) - (vecNABC(1) * vecBC(3))) !
-  vecPC(3)=((vecNABC(1) * vecBC(2)) - (vecNABC(2) * vecBC(1))) !
+  vecPA = cross(vecNABC,vecAB)
+  vecPC = cross(vecNABC,vecBC) 
 
 !Calculate the force contributions right then left  
   do i=1,3
@@ -276,11 +290,11 @@ program sem_forces
   kavgABC = (kRABC + kLABC) * 0.5
 
 !Calculate angle 
-!TBD
+ angleABC = acos(angleABC)*180.0/pi
 
 !Print the angle
   write(*, " (a) ")
-  write(*, " (a) ", advance='NO') "Angle equal to: ", " °"
+  write(*, " (a,F7.1,a) ", advance='NO') "Angle equal to: ", angleABC, " °"
   write(*, " (a) ")
  
 !Print all  
@@ -315,4 +329,4 @@ program sem_forces
  end if
  stop
 end program sem_forces
-
+ 
