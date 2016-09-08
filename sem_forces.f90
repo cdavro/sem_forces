@@ -54,13 +54,15 @@ program sem_forces
  open(unit=50, file="data", status='old', access='sequential', form='formatted', action='read')
   read(50, *) nbatm 
   matsize = nbatm * 3
-  allocate(atmcrd(5,nbatm))
+  allocate(atmcrd(nbatm,5))
   allocate(atmlnb(matsize))
   allocate(atmlan(matsize))
   allocate(atmlna(matsize))
   allocate(atmat(matsize,matsize))
   read(50, *) ! advance one line
-  read(50, *) atmcrd ! fill the coordinates matrix (ATMLNB,ATMLAN,X,Y,Z)
+  do i=1,nbatm
+   read(50, *) atmcrd(i,:) ! fill the coordinates matrix (ATMLNB,ATMLAN,X,Y,Z)
+  enddo
   read(50, *) !advance one line
   read(50, *) atmlnb ! fill the atom number list (ATM1,ATM1,ATM1,ATM2,ATM2,ATM2,..)
   read(50, *) atmlan ! fill the atomic number list (same)
@@ -162,7 +164,7 @@ program sem_forces
 
 !Calculate distance vector, its norm and normalize
   do i=1,3
-   vecAB(i) = (atmcrd(i+2,atmB) - atmcrd(i+2,atmA)) ! distance vector
+   vecAB(i) = (atmcrd(atmb,i+2) - atmcrd(atmA,i+2)) ! distance vector
   end do
   distAB = SQRT(abs(vecAB(1)**2)+abs(vecAB(2)**2)+abs(vecAB(3)**2)) ! norm
   do i=1,3
@@ -250,8 +252,8 @@ program sem_forces
   
 !Calculate both distance vectors, their norms and normalize
   do i=1,3
-   vecAB(i) = (atmcrd(i+2,atmB) - atmcrd(i+2,atmA)) ! distance vector
-   vecBC(i) = (atmcrd(i+2,atmC) - atmcrd(i+2,atmB)) !
+   vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! distance vector
+   vecBC(i) = (atmcrd(atmC,i+2) - atmcrd(atmB,i+2)) !
   end do
   distAB = SQRT(abs(vecAB(1)**2)+abs(vecAB(2)**2)+abs(vecAB(3)**2)) ! norm
   distBC = SQRT(abs(vecBC(1)**2)+abs(vecBC(2)**2)+abs(vecBC(3)**2)) ! 
