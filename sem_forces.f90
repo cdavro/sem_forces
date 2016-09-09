@@ -41,10 +41,10 @@ program sem_forces
  real(dp), allocatable         :: atmat(:,:), atmcrd (:,:)
  integer, allocatable          :: atmlnb (:), atmlan (:)
  character(len=2), allocatable :: atmlna (:) 
- real(dp), dimension(3)        :: vecAB, vecBC, vecNABC, vecPA, vecPC ! vectors
- real(dp)                      :: distAB, distBC, distNABC ! distance
+ real(dp), dimension(3)        :: vecAB, vecBA, vecBC, vecNABC, vecPA, vecPC ! vectors
+ real(dp)                      :: distAB, distBA, distBC, distNABC ! distance
  real(dp)                      :: angleABC ! angle
- real(dp)                      :: kRAB, kRBC, kLAB, kLBC, kavgAB, kavgBC, kRABC, kLABC, kavgABC ! force constant
+ real(dp)                      :: kRAB, kRBC, kLAB, kLBC, kavgAB, kRRABC, kRLABC, kLRABC, kLLABC, kavgABC ! force constant
  integer                       :: atmA, atmB, atmC, smA, smB, smC, nbatm, matsize
  integer                       :: i, j
  
@@ -275,21 +275,34 @@ program sem_forces
   vecPC = cross(vecNABC,vecBC) 
 
 !Calculate the force contributions right then left  
+   kRAB = 0.0_dp
+   kRBC = 0.0_dp
   do i=1,3
    kRAB = kRAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecPA))
    kRBC = kRBC + WRBC(i) * abs(dot_product(VRBC(:,i), vecPC))
   end do
+   kLAB = 0.0_dp
+   kLBC = 0.0_dp
   do i=1,3
    kLAB = kLAB + WRAB(i) * abs(dot_product(VLAB(:,i), vecPA))
    kLBC = kLBC + WRBC(i) * abs(dot_product(VLBC(:,i), vecPC))
   end do
 
 !Calculate the bond angle force constant, right, left and average
-  kRABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distBC**2)*(kRBC))
-  kRABC = 1 / kRABC
-  kLABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distBC**2)*(kLBC))
-  kLABC = 1 / kLABC 
-  kavgABC = (kRABC + kLABC) * 0.5
+  kRRABC = 0.0_dp 
+  kRLABC = 0.0_dp 
+  kLRABC = 0.0_dp 
+  kLLABC = 0.0_dp 
+  
+  kRRABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distBC**2)*(kRBC))
+  kRRABC = 1 / kRRABC
+  kRLABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distBC**2)*(kLBC))
+  kRLABC = 1 / kRLABC
+  kLRABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distBC**2)*(kRBC))
+  kLRABC = 1 / kLRABC
+  kLLABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distBC**2)*(kLBC))
+  kLLABC = 1 / kLLABC 
+  kavgABC = (kRRABC + kRLABC + kLRABC + kLLABC) * 0.25
 
 !Calculate angle 
  angleABC = acos(angleABC)*180.0/pi
@@ -301,16 +314,26 @@ program sem_forces
  
 !Print all  
   write(*, " (a) ")
-  write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using right EV for angle ", &
+  write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using right/right EV for angle ", &
                                              trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
                                              trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
                                              trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
-                                             (kRABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
-  write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using  left EV for angle ", &
+                                             (kRRABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
+  write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using right/left  EV for angle ", &
                                              trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
                                              trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
                                              trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
-                                             (kLABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
+                                             (kRLABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
+  write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using  left/right EV for angle ", &
+                                             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
+                                             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
+                                             trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
+                                             (kLRABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
+  write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using  left/left  EV for angle ", &
+                                             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
+                                             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
+                                             trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
+                                             (kLLABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
   write(*, " (a) ")
   write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Averaged bond angle force constant (k(r-r0)^2) for angle ", &
                                              trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
