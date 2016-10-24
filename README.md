@@ -1,6 +1,6 @@
 ## What is it ?
 
-A small fortran (f90) program to calculate force constans (bonds and bend angles force constants for now) in the Amber format using Gaussian09 fchk parsed cartesian Hessian matrix. See below for format.  
+A small fortran (f90) program to calculate force constants (bonds and bend angles force constants for now) in the Amber format using Gaussian09 fchk parsed cartesian Hessian matrix. See below for format.  
 
 ## Installation
 
