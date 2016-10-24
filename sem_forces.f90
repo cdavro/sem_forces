@@ -3,7 +3,7 @@
 ! Author: Rolf David
 ! Date: 05/09/2016
 ! Lastest modification: 24/10/2016
-! Version: 1.2.0
+! Version: 1.2.1
 
 ! Mathmodule for the cross product between two vectors
 module mathmodule
