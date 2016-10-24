@@ -26,7 +26,7 @@ program sem_forces
     integer, parameter :: sp=kind(0.0)           ! single precision
  
     real(dp), parameter           :: BA = 0.529177249 ! Bohr to Angstrom
-    real(dp), parameter           :: HKC = 627.5095   ! Hartree to kcal/mol
+    real(dp), parameter           :: HKC = 627.509469      ! Hartree to kcal/mol
     real(dp), parameter           :: pi = 3.1415926535897932384
     integer, parameter            :: N = 3
     integer, parameter            :: LDA = N, LDVL = N, LDVR = N
@@ -83,7 +83,7 @@ program sem_forces
     read(*, *) atmB
     write (*, " (a) ")
     write (*, " (a) ") "Select the third atom:"
-    write (*, " (a) ") "Put 0 if you want the bond lenght force constant"
+    write (*, " (a) ") "Put 0 if you want the bond length force constant"
     read(*, *) atmC
   
     !Whatever the case load AB interatomic force constant matrix
