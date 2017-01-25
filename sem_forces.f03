@@ -25,6 +25,8 @@ end module mathmodule
 program sem_forces
     use mathmodule
     implicit none
+    character(len=64) :: filename
+
     integer, parameter :: dp=kind(0.0d0)         ! double precision
     integer, parameter :: sp=kind(0.0)           ! single precision
 
@@ -55,7 +57,8 @@ program sem_forces
     external DGEEV
 
     ! Read file
-    open(unit=50, file="data", status='old', access='sequential', form='formatted', action='read')
+    CALL get_command_argument(1,filename)
+    open(unit=50, file=filename, status='old', access='sequential', form='formatted', action='read')
     read(50, *) nbatm
     matsize = nbatm * 3
     allocate(atmcrd(nbatm,5))

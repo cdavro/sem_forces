@@ -1,21 +1,22 @@
 ## What is it ?
 
-A small fortran (f90) program to calculate force constants (bonds and bend angles force constants for now) in the Amber format using Gaussian09 fchk parsed cartesian Hessian matrix. See below for format.  
+A small fortran (f03) program to calculate force constants (bonds and bend angles force constants for now) in the Amber format using Gaussian09 fchk parsed cartesian Hessian matrix. See below for format.  
 
 ## Installation
 
 Compile it with gfortran (>= 4.9) or ifort (>= 2013).  
-Ex: gfortran -framwork Accelerate -o sem_forces.f90 sem_forces (using the MacOS default installed LAPACK framework)  
+Ex: gfortran -framework Accelerate sem_forces.f03 -o sem_forces (using the MacOS default installed LAPACK framework)  
 
 ## Usage
 
-Just lauch the program with the data file in the directory (Subject to change and will ask where the data file is located)  
+Just lauch the program with the data file name as first argument
+Ex: ./sem_forces dataWater
 
 
 ## Data file format
 
 You can write a fchk parser.  
-The parsed file should be called 'data'.  
+The parsed file is the first argument when lauching the program
 
 1: Number of Atoms  
 2: --------- Coordinates --------- (or blank line)  
@@ -32,7 +33,7 @@ The parsed file should be called 'data'.
 .: Fx1z1;Fy1z1;Fz1z1;Fx2z1;...  
 ...  
 
-An example for the H2O molecule is included (as dataWater file, rename it to 'data' to use it)  
+An example for the H2O molecule is included (as dataWater file)
 
 ## License
 
