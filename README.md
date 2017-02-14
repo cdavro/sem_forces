@@ -5,7 +5,7 @@ A small fortran (f03) program to calculate force constants (bonds and bend angle
 ## Installation
 
 Compile it with gfortran (>= 4.9) or ifort (>= 2013).  
-Ex: gfortran -framework Accelerate sem_forces.f03 -o sem_forces (using the MacOS default installed LAPACK framework)  
+Ex: gfortran -framework Accelerate sem_forces.f90 -o sem_forces (using the MacOS default installed LAPACK framework)  
 
 ## Usage
 

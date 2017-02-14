@@ -2,8 +2,8 @@
 ! Reference: Seminario, J. M. Int. J. Quantum Chem. 1996, 60, 1271.
 ! Author: Rolf David
 ! Date: 05/09/2016
-! Lastest modification: 24/10/2016
-! Version: 1.2.1
+! Lastest modification: 14/02/2017
+! Version: 1.3.4
 
 ! Mathmodule for the cross product between two vectors
 module mathmodule
