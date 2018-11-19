@@ -77,7 +77,6 @@ program sem_forces
     read(50, *) ! advance one line
     read(50, *) atmat
     close(50)
-
     ! Ask user to select atoms
     write (*, " (a) ") "This is the list of atoms:"
     do i = 1,nbatm
@@ -94,21 +93,17 @@ program sem_forces
     write (*, " (a) ") "Select the third atom:"
     write (*, " (a) ") "Put 0 if you want the bond FC, put 1 if you want the bond angle FC"
     read(*, *) atmC
-    write(*," (E14.6E2,a) " , advance="no") atmat(1,1), ""
-write(*," (E14.6E2,a) " , advance="no") atmat(2,1), ""
-write(*," (E14.6E2,a) " , advance="no") atmat(1,2), ""
-write(*," (E14.6E2,a) " , advance="no") atmat(4,1), ""
-write(*," (E14.6E2,a) " , advance="no") atmat(3,1), ""
     ! Whatever the case load AB interatomic force constant matrix
-    smA=((atmA * 3)-3)
-    smB=((atmB * 3)-3)
+    write(*," (I0) ") smA
+    write(*," (I0) ") smB
     do i=1,3
         do j=1,3
-            AM_AB(j,i) = atmat( (smA+i), (smB+j) )
+            AM_AB(i,j) = atmat( (smA+i), (smB+j) )
         end do
     end do
     AM_AB = -1 * AM_AB
-
+    write(*," (E14.6E2,a) ") AM_AB(1,1)
+    write(*," (E14.6E2,a) ") AM_AB(1,2)
     ! Test if bond length or bond angle ?
     if (atmC == 0) then ! bond only
 
@@ -118,8 +113,8 @@ write(*," (E14.6E2,a) " , advance="no") atmat(3,1), ""
             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), " and atom ", &
             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " :"
         write (*, " (a) ")
-        do i=1,3
-            do j=1,3
+        do j=1,3
+            do i=1,3
                 write(*, " (E14.6E2,a) " , advance="no") (AM_AB(i,j)), ""
             end do
             write (*, " (a) ")
@@ -157,8 +152,8 @@ write(*," (E14.6E2,a) " , advance="no") atmat(3,1), ""
         write(*, " (a) ")
         write(*, " (a) ") "Right Eigen Vectors:"
         write(*, " (a) ")
-        do i=1,3
-            do j=1,3
+        do j=1,3
+            do i=1,3
                 write(*, " (E14.6E2,a) ", advance="no") VRAB(i,j), ""
             end do
             write(*, " (a) ")
@@ -166,8 +161,8 @@ write(*," (E14.6E2,a) " , advance="no") atmat(3,1), ""
         write(*, " (a) ")
         write(*, " (a) ") "Left Eigen Vectors:"
         write(*, " (a) ")
-        do i=1,3
-            do j=1,3
+        do j=1,3
+            do i=1,3
                 write(*, " (E14.6E2,a) ", advance="no") VLAB(i,j), ""
             end do
             write(*, " (a) ")
