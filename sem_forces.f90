@@ -47,8 +47,8 @@ program sem_forces
     real(dp), allocatable         :: atmat(:,:), atmcrd (:,:)
     integer, allocatable          :: atmlnb (:), atmlan (:)
     character(len=2), allocatable :: atmlna (:)
-    real(dp), dimension(3)        :: vecAB, vecBC, vecNABC, vecPA, vecPC                                     ! vectors
-    real(dp)                      :: distAB, distBC, distNABC                                                ! distance
+    real(dp), dimension(3)        :: vecAB, vecCB, vecBC, vecNABC, vecPA, vecPC                                     ! vectors
+    real(dp)                      :: distAB, distCB, distBC, distNABC                                                ! distance
     real(dp)                      :: angleABC                                                                ! angle
     real(dp)                      :: kRAB, kRBC, kLAB, kLBC, kavgAB, kRRABC, kRLABC, kLRABC, kLLABC, kavgABC ! force constant
     integer                       :: atmA, atmB, atmC, smA, smB, smC, nbatm, matsize
@@ -92,15 +92,19 @@ program sem_forces
     read(*, *) atmB
     write (*, " (a) ")
     write (*, " (a) ") "Select the third atom:"
-    write (*, " (a) ") "Put 0 if you want the bond length force constant"
+    write (*, " (a) ") "Put 0 if you want the bond FC, put 1 if you want the bond angle FC"
     read(*, *) atmC
-
+    write(*," (E14.6E2,a) " , advance="no") atmat(1,1), ""
+write(*," (E14.6E2,a) " , advance="no") atmat(2,1), ""
+write(*," (E14.6E2,a) " , advance="no") atmat(1,2), ""
+write(*," (E14.6E2,a) " , advance="no") atmat(4,1), ""
+write(*," (E14.6E2,a) " , advance="no") atmat(3,1), ""
     ! Whatever the case load AB interatomic force constant matrix
     smA=((atmA * 3)-3)
     smB=((atmB * 3)-3)
     do i=1,3
         do j=1,3
-            AM_AB(i,j) = atmat( (smA+i), (smB+j) )
+            AM_AB(j,i) = atmat( (smA+i), (smB+j) )
         end do
     end do
     AM_AB = -1 * AM_AB
@@ -114,8 +118,8 @@ program sem_forces
             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), " and atom ", &
             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " :"
         write (*, " (a) ")
-        do j=1,3
-            do i=1,3
+        do i=1,3
+            do j=1,3
                 write(*, " (E14.6E2,a) " , advance="no") (AM_AB(i,j)), ""
             end do
             write (*, " (a) ")
@@ -153,8 +157,8 @@ program sem_forces
         write(*, " (a) ")
         write(*, " (a) ") "Right Eigen Vectors:"
         write(*, " (a) ")
-        do j=1,3
-            do i=1,3
+        do i=1,3
+            do j=1,3
                 write(*, " (E14.6E2,a) ", advance="no") VRAB(i,j), ""
             end do
             write(*, " (a) ")
@@ -162,8 +166,8 @@ program sem_forces
         write(*, " (a) ")
         write(*, " (a) ") "Left Eigen Vectors:"
         write(*, " (a) ")
-        do j=1,3
-            do i=1,3
+        do i=1,3
+            do j=1,3
                 write(*, " (E14.6E2,a) ", advance="no") VLAB(i,j), ""
             end do
             write(*, " (a) ")
@@ -171,13 +175,14 @@ program sem_forces
 
         ! Calculate distance vector, its norm and normalize
         do i=1,3
-            vecAB(i) = (atmcrd(atmb,i+2) - atmcrd(atmA,i+2)) ! distance vector
+            vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! distance vector
         end do
         distAB = SQRT(abs(vecAB(1)**2)+abs(vecAB(2)**2)+abs(vecAB(3)**2)) ! norm
         do i=1,3
-            vecAB(i) = vecAB(i)/abs(distAB) ! distance unit vector
+            vecAB(i) = vecAB(i)/abs(distAB) 
+            write(*, " (E14.6E2,a) ", advance="no") vecAB(i), ""! distance unit vector
         end do
-
+        
         ! Print the distance
         write(*, " (a) ")
         write(*, " (a,F6.2,a) ", advance='NO') "Interatomic distance: ", (distAB * BA), " Å"
@@ -189,28 +194,28 @@ program sem_forces
         do i=1,3
             kRAB = kRAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecAB))
         end do
-        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond length force constant (k(r-r0)^2) using right EV for bond ", &
+        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond length force constant ((1/2)k(r-r0)^2) using right EV for bond ", &
             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " is equal to : ", &
-            kRAB*(HKC/(BA**2))*0.5, " kcal*mol^-1*Â^-2"
+            kRAB*(HKC/(BA**2)), " kcal*mol^-1*Â^-2"
 
         ! Calculate the LFC and print it
         kLAB = 0.0_dp
         do i=1,3
             kLAB = kLAB + WRAB(i) * abs(dot_product(VLAB(:,i), vecAB))
         end do
-        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond length force constant (k(r-r0)^2) using  left EV for bond " , &
+        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond length force constant ((1/2)k(r-r0)^2) using  left EV for bond " , &
             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " is equal to : ", &
-            kLAB*(HKC/(BA**2))*0.5, " kcal*mol^-1*Å^-2."
+            kLAB*(HKC/(BA**2)), " kcal*mol^-1*Å^-2."
 
         ! Calculate the average of the two and print it
         kavgAB = (kRAB + kLAB) * 0.5
         write(*, " (a) ")
-        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Averaged bond lenght force constant (k(r-r0)^2) for bond " ,&
+        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Averaged bond lenght force constant ((1/2)k(r-r0)^2) for bond " ,&
             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|",&
             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " is equal to : ",&
-            kavgAB*(HKC/(BA**2))*0.5, " kcal*mol^-1*Å^-2."
+            kavgAB*(HKC/(BA**2)), " kcal*mol^-1*Å^-2."
         write(*, " (a) ")
 
         ! Deallocate and exit
@@ -260,14 +265,14 @@ program sem_forces
         ! Calculate both distance vectors, their norms and normalize
         do i=1,3
             vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! distance vector
-            vecBC(i) = (atmcrd(atmC,i+2) - atmcrd(atmB,i+2)) ! distance vector
+            vecCB(i) = (atmcrd(atmB,i+2) - atmcrd(atmC,i+2)) ! distance vector
         end do
         distAB = SQRT(abs(vecAB(1)**2)+abs(vecAB(2)**2)+abs(vecAB(3)**2)) ! norm
-        distBC = SQRT(abs(vecBC(1)**2)+abs(vecBC(2)**2)+abs(vecBC(3)**2)) ! norm
+        distCB = SQRT(abs(vecCB(1)**2)+abs(vecCB(2)**2)+abs(vecCB(3)**2)) ! norm
         angleABC = dot_product((-1*vecAB),vecBC) / (distAB * distBC)      ! store the cos(angleABC)
         do i=1,3
             vecAB(i) = vecAB(i)/abs(distAB) ! distance unit vector
-            vecBC(i) = vecBC(i)/abs(distBC) ! distance unit vector
+            vecCB(i) = vecCB(i)/abs(distCB) ! distance unit vector
         end do
 
         ! Calculate the vector perpendicular to the plane ABC, its norm and normalize
