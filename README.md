@@ -5,9 +5,9 @@ See below for format.
 
 ## Installation
 
-Compile it with gfortran (>= 4.9) or ifort (>= 2013). 
+Compile it with gfortran (>= 4.9) or ifort (>= 2013).  
 Ex: gfortran -framework Accelerate sem_forces.f90 -o sem_forces (using the MacOS default installed LAPACK framework)  
-
+  
 ## Usage
 
 Just lauch the program with the data file name as first argument  

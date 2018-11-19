@@ -2,8 +2,8 @@
 ! Reference: Seminario, J. M. Int. J. Quantum Chem. 1996, 60, 1271.
 ! Author: Rolf David
 ! Date: 05/09/2016
-! Lastest modification: 14/02/2017
-! Version: 1.3.4
+! Lastest modification: 19/10/2018
+! Version: 1.3.6
 
 ! Mathmodule for the cross product between two vectors
 module mathmodule
@@ -91,20 +91,20 @@ program sem_forces
     read(*, *) atmB
     write (*, " (a) ")
     write (*, " (a) ") "Select the third atom:"
-    write (*, " (a) ") "Put 0 if you want the bond FC, put 1 if you want the bond angle FC"
+    write (*, " (a) ") "Put 0 if you want the bond FC, put the atom number if you want the bond angle FC"
     read(*, *) atmC
+
     ! Whatever the case load AB interatomic force constant matrix
-    write(*," (I0) ") smA
-    write(*," (I0) ") smB
+    smA=((atmA * 3)-3)
+    smB=((atmB * 3)-3)
     do i=1,3
         do j=1,3
             AM_AB(i,j) = atmat( (smA+i), (smB+j) )
         end do
     end do
     AM_AB = -1 * AM_AB
-    write(*," (E14.6E2,a) ") AM_AB(1,1)
-    write(*," (E14.6E2,a) ") AM_AB(1,2)
-    ! Test if bond length or bond angle ?
+    ! Test if bond FC or bond angle FC ?
+!----------------------------------- BOND FORCE CONSTANTS ----------------------------------! 
     if (atmC == 0) then ! bond only
 
         ! Print force matrix for bond length
@@ -170,12 +170,12 @@ program sem_forces
 
         ! Calculate distance vector, its norm and normalize
         do i=1,3
-            vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! distance vector
+            vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! AB vector
         end do
-        distAB = SQRT(abs(vecAB(1)**2)+abs(vecAB(2)**2)+abs(vecAB(3)**2)) ! norm
+
+        distAB = norm2(vecAB) ! Norm of AB
         do i=1,3
-            vecAB(i) = vecAB(i)/abs(distAB) 
-            write(*, " (E14.6E2,a) ", advance="no") vecAB(i), ""! distance unit vector
+            vecAB(i) = vecAB(i)/abs(distAB) ! AB unit vector
         end do
         
         ! Print the distance
