@@ -3,7 +3,7 @@
 ! Author: Rolf David
 ! Date: 05/09/2016
 ! Lastest modification: 19/10/2018
-! Version: 1.3.6
+! Version: 1.3.7
 
 ! Mathmodule for the cross product between two vectors
 module mathmodule
@@ -39,18 +39,18 @@ program sem_forces
     integer, parameter            :: LDA = N, LDVL = N, LDVR = N
     integer, parameter            :: LWMAX = 1000
     integer                       :: INFO, LWORK
-    real(dp), dimension(3,3)      :: AM_AB, AM_BC, VRAB, VLAB, VRBC, VLBC
-    real(dp), dimension(3)        :: WRAB, WIAB, WRBC, WIBC
+    real(dp), dimension(3,3)      :: AM_AB, AM_CB, VRAB, VLAB, VRCB, VLCB
+    real(dp), dimension(3)        :: WRAB, WIAB, WRCB, WICB
     real(dp), allocatable         :: WORK (:)
 
     ! Variables
     real(dp), allocatable         :: atmat(:,:), atmcrd (:,:)
     integer, allocatable          :: atmlnb (:), atmlan (:)
     character(len=2), allocatable :: atmlna (:)
-    real(dp), dimension(3)        :: vecAB, vecCB, vecBC, vecNABC, vecPA, vecPC                                     ! vectors
-    real(dp)                      :: distAB, distCB, distBC, distNABC                                                ! distance
+    real(dp), dimension(3)        :: vecAB, vecCB, vecNABC, vecPA, vecPC                                     ! vectors
+    real(dp)                      :: distAB, distCB, distNABC                                                ! distance
     real(dp)                      :: angleABC                                                                ! angle
-    real(dp)                      :: kRAB, kRBC, kLAB, kLBC, kavgAB, kRRABC, kRLABC, kLRABC, kLLABC, kavgABC ! force constant
+    real(dp)                      :: kRAB, kRCB, kLAB, kLCB, kavgAB, kRRABC, kRLABC, kLRABC, kLLABC, kavgABC ! force constant
     integer                       :: atmA, atmB, atmC, smA, smB, smC, nbatm, matsize
     integer                       :: i, j
 
@@ -103,6 +103,7 @@ program sem_forces
         end do
     end do
     AM_AB = -1 * AM_AB
+
     ! Test if bond FC or bond angle FC ?
 !----------------------------------- BOND FORCE CONSTANTS ----------------------------------! 
     if (atmC == 0) then ! bond only
@@ -226,10 +227,10 @@ program sem_forces
         smC=((atmC * 3)-3)
         do i=1,3
             do j=1,3
-                AM_BC(i,j) = atmat( (smB+i), (smC+j) )
+                AM_CB(i,j) = atmat( (smC+i), (smB+j) )
             end do
         end do
-        AM_BC = -1*AM_BC
+        AM_CB = -1*AM_CB
 
         ! Call for intel MKL or LAPACK
         LWORK = -1
@@ -246,11 +247,11 @@ program sem_forces
         end if
         LWORK = -1
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_BC, LDA, WRBC , WIBC, VLBC, LDVL, VRBC, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('V', 'V', N, AM_CB, LDA, WRCB , WICB, VLCB, LDVL, VRCB, LDVR, WORK, LWORK, INFO)
         LWORK = MIN (LWMAX, INT(WORK(1)))
         deallocate(WORK)
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_BC, LDA, WRBC, WIBC, VLBC, LDVL, VRBC, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('V', 'V', N, AM_CB, LDA, WRCB, WICB, VLCB, LDVL, VRCB, LDVR, WORK, LWORK, INFO)
         deallocate(WORK)
         if( INFO > 0 ) then
             write(*, *) 'The algorithm failed to compute eigenvalues.'
@@ -259,40 +260,40 @@ program sem_forces
   
         ! Calculate both distance vectors, their norms and normalize
         do i=1,3
-            vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! distance vector
-            vecCB(i) = (atmcrd(atmB,i+2) - atmcrd(atmC,i+2)) ! distance vector
+            vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! AB vector
+            vecCB(i) = (atmcrd(atmB,i+2) - atmcrd(atmC,i+2)) ! CB vector
         end do
-        distAB = SQRT(abs(vecAB(1)**2)+abs(vecAB(2)**2)+abs(vecAB(3)**2)) ! norm
-        distCB = SQRT(abs(vecCB(1)**2)+abs(vecCB(2)**2)+abs(vecCB(3)**2)) ! norm
-        angleABC = dot_product((-1*vecAB),vecBC) / (distAB * distBC)      ! store the cos(angleABC)
+        distAB = norm2(vecAB) ! Norm of AB
+        distCB = norm2(vecCB) ! Norm of CB
+        angleABC = dot_product(vecAB,vecCB) / (distAB * distCB)      ! Store the ABC angle
         do i=1,3
-            vecAB(i) = vecAB(i)/abs(distAB) ! distance unit vector
-            vecCB(i) = vecCB(i)/abs(distCB) ! distance unit vector
+            vecAB(i) = vecAB(i)/abs(distAB) ! AB unit vector
+            vecCB(i) = vecCB(i)/abs(distCB) ! CB unit vector
         end do
 
         ! Calculate the vector perpendicular to the plane ABC, its norm and normalize
-        vecNABC = cross(vecAB,vecBC)
-        distNABC=SQRT(abs(vecNABC(1)**2)+abs(vecNABC(2)**2)+abs(vecNABC(3)**2)) ! norm
+        vecNABC = cross(vecCB,vecAB) ! NormABC vector
+        distNABC=norm2(vecNABC) ! Norm of the NormABC vector
         do i=1,3
-            vecNABC(i)=vecNABC(i)/abs(distNABC) ! normalize
+            vecNABC(i)=vecNABC(i)/abs(distNABC) ! NormABC unit vector
         enddo
 
-        ! Calculate unit vector perpendicaulr to AB and BC on the ABC plane
+        ! Calculate unit vector perpendiculr to AB and CB on the ABC plane
         vecPA = cross(vecNABC,vecAB)
-        vecPC = cross(vecNABC,vecBC)
+        vecPC = cross(vecCB,vecNABC)
 
         ! Calculate the force contributions right then left
         kRAB = 0.0_dp
-        kRBC = 0.0_dp
+        kRCB = 0.0_dp
         do i=1,3
             kRAB = kRAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecPA))
-            kRBC = kRBC + WRBC(i) * abs(dot_product(VRBC(:,i), vecPC))
+            kRCB = kRCB + WRCB(i) * abs(dot_product(VRCB(:,i), vecPC))
         end do
         kLAB = 0.0_dp
-        kLBC = 0.0_dp
+        kLCB = 0.0_dp
         do i=1,3
             kLAB = kLAB + WRAB(i) * abs(dot_product(VLAB(:,i), vecPA))
-            kLBC = kLBC + WRBC(i) * abs(dot_product(VLBC(:,i), vecPC))
+            kLCB = kLCB + WRCB(i) * abs(dot_product(VLCB(:,i), vecPC))
         end do
 
         ! Calculate the bond angle force constant, right, left and average
@@ -301,13 +302,13 @@ program sem_forces
         kLRABC = 0.0_dp
         kLLABC = 0.0_dp
 
-        kRRABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distBC**2)*(kRBC))
+        kRRABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distCB**2)*(kRCB))
         kRRABC = 1 / kRRABC
-        kRLABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distBC**2)*(kLBC))
+        kRLABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distCB**2)*(kLCB))
         kRLABC = 1 / kRLABC
-        kLRABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distBC**2)*(kRBC))
+        kLRABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distCB**2)*(kRCB))
         kLRABC = 1 / kLRABC
-        kLLABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distBC**2)*(kLBC))
+        kLLABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distCB**2)*(kLCB))
         kLLABC = 1 / kLLABC
         kavgABC = (kRRABC + kRLABC + kLRABC + kLLABC) * 0.25
 
