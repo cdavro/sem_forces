@@ -1,9 +1,9 @@
-! Seminario method for bond force constant (length and angle)
+! Seminario method for force constant (bonds, angles and torsions)
 ! Reference: Seminario, J. M. Int. J. Quantum Chem. 1996, 60, 1271.
 ! Author: Rolf David
 ! Date: 05/09/2016
-! Lastest modification: 19/10/2018
-! Version: 1.3.7
+! Lastest modification: 20/11/2018
+! Version: 2.0.0
 
 ! Mathmodule for the cross product between two vectors
 module mathmodule
@@ -39,19 +39,19 @@ program sem_forces
     integer, parameter            :: LDA = N, LDVL = N, LDVR = N
     integer, parameter            :: LWMAX = 1000
     integer                       :: INFO, LWORK
-    real(dp), dimension(3,3)      :: AM_AB, AM_CB, VRAB, VLAB, VRCB, VLCB
-    real(dp), dimension(3)        :: WRAB, WIAB, WRCB, WICB
+    real(dp), dimension(3,3)      :: AM_AB, AM_CB, AM_DC, VRAB, VLAB, VRCB, VLCB, VRDC, VLDC
+    real(dp), dimension(3)        :: WRAB, WIAB, WRCB, WICB, WRDC, WIDC
     real(dp), allocatable         :: WORK (:)
 
     ! Variables
     real(dp), allocatable         :: atmat(:,:), atmcrd (:,:)
     integer, allocatable          :: atmlnb (:), atmlan (:)
     character(len=2), allocatable :: atmlna (:)
-    real(dp), dimension(3)        :: vecAB, vecCB, vecNABC, vecPA, vecPC                                     ! vectors
-    real(dp)                      :: distAB, distCB, distNABC                                                ! distance
-    real(dp)                      :: angleABC                                                                ! angle
-    real(dp)                      :: kRAB, kRCB, kLAB, kLCB, kavgAB, kRRABC, kRLABC, kLRABC, kLLABC, kavgABC ! force constant
-    integer                       :: atmA, atmB, atmC, smA, smB, smC, nbatm, matsize
+    real(dp), dimension(3)        :: vecAB, vecCB, vecNABC, vecPA, vecPC, vecBC, vecDC, vecNBCD, vecCD, vecBA                         ! vectors
+    real(dp)                      :: distAB, distCB, distNABC, distBC, distDC, distNBCD, distCD, distBA                                    ! distance/norm
+    real(dp)                      :: angleABC, angleABCD, angleABCDsign                                                                           ! angle
+    real(dp)                      :: kAB, kCB, kABC, kBCD, kABC2, kBCD2, kABCD                                                     ! FC     
+    integer                       :: atmA, atmB, atmC, atmD, smA, smB, smC, smD, nbatm, matsize
     integer                       :: i, j
 
     external DGEEV
@@ -91,8 +91,12 @@ program sem_forces
     read(*, *) atmB
     write (*, " (a) ")
     write (*, " (a) ") "Select the third atom:"
-    write (*, " (a) ") "Put 0 if you want the bond FC, put the atom number if you want the bond angle FC"
+    write (*, " (a) ") "Put 0 if not needed (bond FC), put the atom number for bond angle FC"
     read(*, *) atmC
+    write (*, " (a) ")
+    write (*, " (a) ") "Select the fourth atom:"
+    write (*, " (a) ") "Put 0 if not needed (bond FC, bond angle FC), put the atom number for dihedral angle FC"
+    read(*, *) atmD
 
     ! Whatever the case load AB interatomic force constant matrix
     smA=((atmA * 3)-3)
@@ -104,9 +108,8 @@ program sem_forces
     end do
     AM_AB = -1 * AM_AB
 
-    ! Test if bond FC or bond angle FC ?
 !----------------------------------- BOND FORCE CONSTANTS ----------------------------------! 
-    if (atmC == 0) then ! bond only
+    if (atmC .eq. 0 .and. atmD .eq. 0) then ! bond only
 
         ! Print force matrix for bond length
         write (*, " (a) ")
@@ -124,11 +127,11 @@ program sem_forces
         ! Call for intel MKL or LAPACK
         LWORK = -1
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('N', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
         LWORK = MIN (LWMAX, INT(WORK(1)))
         deallocate(WORK)
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('N', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
         deallocate(WORK)
         if( INFO > 0 ) then
             write(*, *) 'The algorithm failed to compute eigenvalues.'
@@ -142,29 +145,14 @@ program sem_forces
         do i=1,3
             write(*, "(E14.5E2,a)", advance="no") (WRAB(i)), ""
         end do
+
         write(*, " (a) ")
         write(*, " (a) ")
-        write(*, " (a) ") "Eigen Values (comp) (a.u.):"
-        write(*, " (a) ")
-        do i=1,3
-            write(*, " (E14.5E2,a) ", advance="no") (WIAB(i)), ""
-        end do
-        write(*, " (a) ")
-        write(*, " (a) ")
-        write(*, " (a) ") "Right Eigen Vectors:"
+        write(*, " (a) ") "(Right) Eigen Vectors:"
         write(*, " (a) ")
         do j=1,3
             do i=1,3
                 write(*, " (E14.6E2,a) ", advance="no") VRAB(i,j), ""
-            end do
-            write(*, " (a) ")
-        end do
-        write(*, " (a) ")
-        write(*, " (a) ") "Left Eigen Vectors:"
-        write(*, " (a) ")
-        do j=1,3
-            do i=1,3
-                write(*, " (E14.6E2,a) ", advance="no") VLAB(i,j), ""
             end do
             write(*, " (a) ")
         end do
@@ -185,34 +173,15 @@ program sem_forces
         write(*, " (a) ")
         write(*, " (a) ")
 
-        ! Calculate the RFC and print it
-        kRAB = 0.0_dp
+        ! Calculate the bond FC and print it
+        kAB = 0.0_dp
         do i=1,3
-            kRAB = kRAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecAB))
+            kAB = kAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecAB))
         end do
-        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond length force constant ((1/2)k(r-r0)^2) using right EV for bond ", &
+        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond FC ((1/2)k(r-r0)^2) for bond ", &
             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " is equal to : ", &
-            kRAB*(HKC/(BA**2)), " kcal*mol^-1*Â^-2"
-
-        ! Calculate the LFC and print it
-        kLAB = 0.0_dp
-        do i=1,3
-            kLAB = kLAB + WRAB(i) * abs(dot_product(VLAB(:,i), vecAB))
-        end do
-        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond length force constant ((1/2)k(r-r0)^2) using  left EV for bond " , &
-            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
-            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " is equal to : ", &
-            kLAB*(HKC/(BA**2)), " kcal*mol^-1*Å^-2."
-
-        ! Calculate the average of the two and print it
-        kavgAB = (kRAB + kLAB) * 0.5
-        write(*, " (a) ")
-        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Averaged bond lenght force constant ((1/2)k(r-r0)^2) for bond " ,&
-            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|",&
-            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " is equal to : ",&
-            kavgAB*(HKC/(BA**2)), " kcal*mol^-1*Å^-2."
-        write(*, " (a) ")
+            kAB*(HKC/(BA**2)), " kcal*mol^-1*Â^-2"
 
         ! Deallocate and exit
         deallocate(atmcrd)
@@ -222,8 +191,8 @@ program sem_forces
         deallocate(atmat)
         stop
 
-    ! If a bond angle force constant is requested
-    else
+!----------------------------------- BOND ANGLE FORCE CONSTANTS ----------------------------------!
+    else if (atmC .gt. 0 .and. atmD .eq. 0) then
         smC=((atmC * 3)-3)
         do i=1,3
             do j=1,3
@@ -235,11 +204,11 @@ program sem_forces
         ! Call for intel MKL or LAPACK
         LWORK = -1
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('N', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
         LWORK = MIN (LWMAX, INT(WORK(1)))
         deallocate(WORK)
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('N', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
         deallocate(WORK)
         if( INFO > 0 ) then
             write(*, *) 'The algorithm failed to compute eigenvalues.'
@@ -247,11 +216,11 @@ program sem_forces
         end if
         LWORK = -1
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_CB, LDA, WRCB , WICB, VLCB, LDVL, VRCB, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('N', 'V', N, AM_CB, LDA, WRCB , WICB, VLCB, LDVL, VRCB, LDVR, WORK, LWORK, INFO)
         LWORK = MIN (LWMAX, INT(WORK(1)))
         deallocate(WORK)
         allocate(WORK(LWORK))
-        call DGEEV ('V', 'V', N, AM_CB, LDA, WRCB, WICB, VLCB, LDVL, VRCB, LDVR, WORK, LWORK, INFO)
+        call DGEEV ('N', 'V', N, AM_CB, LDA, WRCB, WICB, VLCB, LDVL, VRCB, LDVR, WORK, LWORK, INFO)
         deallocate(WORK)
         if( INFO > 0 ) then
             write(*, *) 'The algorithm failed to compute eigenvalues.'
@@ -265,7 +234,6 @@ program sem_forces
         end do
         distAB = norm2(vecAB) ! Norm of AB
         distCB = norm2(vecCB) ! Norm of CB
-        angleABC = dot_product(vecAB,vecCB) / (distAB * distCB)      ! Store the ABC angle
         do i=1,3
             vecAB(i) = vecAB(i)/abs(distAB) ! AB unit vector
             vecCB(i) = vecCB(i)/abs(distCB) ! CB unit vector
@@ -282,73 +250,34 @@ program sem_forces
         vecPA = cross(vecNABC,vecAB)
         vecPC = cross(vecCB,vecNABC)
 
-        ! Calculate the force contributions right then left
-        kRAB = 0.0_dp
-        kRCB = 0.0_dp
+        ! Calculate the force contributions
+        kAB = 0.0_dp
+        kCB = 0.0_dp
         do i=1,3
-            kRAB = kRAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecPA))
-            kRCB = kRCB + WRCB(i) * abs(dot_product(VRCB(:,i), vecPC))
-        end do
-        kLAB = 0.0_dp
-        kLCB = 0.0_dp
-        do i=1,3
-            kLAB = kLAB + WRAB(i) * abs(dot_product(VLAB(:,i), vecPA))
-            kLCB = kLCB + WRCB(i) * abs(dot_product(VLCB(:,i), vecPC))
+            kAB = kAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecPA))
+            kCB = kCB + WRCB(i) * abs(dot_product(VRCB(:,i), vecPC))
         end do
 
-        ! Calculate the bond angle force constant, right, left and average
-        kRRABC = 0.0_dp
-        kRLABC = 0.0_dp
-        kLRABC = 0.0_dp
-        kLLABC = 0.0_dp
-
-        kRRABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distCB**2)*(kRCB))
-        kRRABC = 1 / kRRABC
-        kRLABC = 1 / ((distAB**2)*(kRAB)) + 1 / ((distCB**2)*(kLCB))
-        kRLABC = 1 / kRLABC
-        kLRABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distCB**2)*(kRCB))
-        kLRABC = 1 / kLRABC
-        kLLABC = 1 / ((distAB**2)*(kLAB)) + 1 / ((distCB**2)*(kLCB))
-        kLLABC = 1 / kLLABC
-        kavgABC = (kRRABC + kRLABC + kLRABC + kLLABC) * 0.25
+        ! Calculate the bond angle FC
+        kABC = 0.0_dp
+        kABC = 1 / ((distAB**2)*(kAB)) + 1 / ((distCB**2)*(kCB))
+        kABC = 1 / kABC
 
         ! Calculate angle
-        angleABC = acos(angleABC)*180.0/pi
+        angleABC = acos(dot_product(vecAB,vecCB))*180.0/pi
 
         ! Print the angle
         write(*, " (a) ")
         write(*, " (a,F7.1,a) ", advance='NO') "Angle equal to: ", angleABC, " °"
         write(*, " (a) ")
 
-        ! Print all
+        ! Print the bond angle FC
         write(*, " (a) ")
-        write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using right/right EV for angle ", &
+        write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle FC ((1/2)k(T-T0)^2) for angle ", &
             trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
             trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
             trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
-            (kRRABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
-        write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using right/left  EV for angle ", &
-            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
-            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
-            trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
-            (kRLABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
-        write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using  left/right EV for angle ", &
-            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
-            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
-            trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
-            (kLRABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
-        write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Bond angle force constant (k(r-r0)^2) using  left/left  EV for angle ", &
-            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
-            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
-            trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
-            (kLLABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
-        write(*, " (a) ")
-        write(*, " (2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Averaged bond angle force constant (k(r-r0)^2) for angle ", &
-            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
-            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
-            trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), " is equal to : ", &
-            (kavgABC*(HKC)*0.5), " kcal*mol^-1*rad^-2"
-        write(*, " (a) ")
+            (kABC*(HKC)), " kcal*mol^-1*rad^-2"
 
         ! Deallocate and exit
         deallocate(atmcrd)
@@ -358,7 +287,129 @@ program sem_forces
         deallocate(atmat)
         stop
 
-    ! Exit
+!----------------------------------- DIHEDRAL ANGLE FORCE CONSTANTS ----------------------------------!
+    else if (atmC .gt. 0 .and. atmD .gt. 0) then
+        smC=((atmC * 3)-3)
+        smD=((atmD * 3)-3)
+
+        do i=1,3
+            do j=1,3
+                AM_DC(i,j) = atmat( (smD+i), (smC+j) )
+            end do
+        end do
+        AM_DC = -1*AM_DC
+
+        ! Call for intel MKL or LAPACK
+        LWORK = -1
+        allocate(WORK(LWORK))
+        call DGEEV ('N', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
+        LWORK = MIN (LWMAX, INT(WORK(1)))
+        deallocate(WORK)
+        allocate(WORK(LWORK))
+        call DGEEV ('N', 'V', N, AM_AB, LDA, WRAB, WIAB, VLAB, LDVL, VRAB, LDVR, WORK, LWORK, INFO)
+        deallocate(WORK)
+        if( INFO > 0 ) then
+            write(*, *) 'The algorithm failed to compute eigenvalues.'
+            stop
+        end if
+        LWORK = -1
+        allocate(WORK(LWORK))
+        call DGEEV ('N', 'V', N, AM_DC, LDA, WRDC , WIDC, VLDC, LDVL, VRDC, LDVR, WORK, LWORK, INFO)
+        LWORK = MIN (LWMAX, INT(WORK(1)))
+        deallocate(WORK)
+        allocate(WORK(LWORK))
+        call DGEEV ('N', 'V', N, AM_DC, LDA, WRDC , WIDC, VLDC, LDVL, VRDC, LDVR, WORK, LWORK, INFO)
+        deallocate(WORK)
+        if( INFO > 0 ) then
+            write(*, *) 'The algorithm failed to compute eigenvalues.'
+            stop
+        end if
+
+        ! Calculate all distance vectors, their norms and normalize
+        do i=1,3
+            vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! AB vector
+            vecBA(i) = (atmcrd(atmA,i+2) - atmcrd(atmB,i+2)) ! BA vector
+            vecCB(i) = (atmcrd(atmB,i+2) - atmcrd(atmC,i+2)) ! CB vector
+            vecBC(i) = (atmcrd(atmC,i+2) - atmcrd(atmB,i+2)) ! BC vector
+            vecDC(i) = (atmcrd(atmC,i+2) - atmcrd(atmD,i+2)) ! DC vector
+            vecCD(i) = (atmcrd(atmD,i+2) - atmcrd(atmC,i+2)) ! CD vector
+        end do
+
+        distAB = norm2(vecAB) ! Norm of AB
+        distBA = norm2(vecBA) ! Norm of BA
+        distCB = norm2(vecCB) ! Norm of CB
+        distBC = norm2(vecBC) ! Norm of BC
+        distDC = norm2(vecDC) ! Norm of DC
+        distCD = norm2(vecCD) ! Norm of CD
+        do i=1,3
+            vecAB(i) = vecAB(i)/abs(distAB) ! AB unit vector
+            vecBA(i) = vecBA(i)/abs(distBA) ! BA unit vector
+            vecCB(i) = vecCB(i)/abs(distCB) ! CB unit vector
+            vecBC(i) = vecBC(i)/abs(distBC) ! BC unit vector
+            vecDC(i) = vecDC(i)/abs(distDC) ! DC unit vector
+            vecCD(i) = vecCD(i)/abs(distCD) ! CD unit vector
+        end do
+
+        ! Calculate the vector perpendicular to the plane ABC, its norm and normalize
+        vecNABC = cross(vecCB,vecAB) ! NormABC vector
+        distNABC=norm2(vecNABC) ! Norm of the NormABC vector
+        do i=1,3
+            vecNABC(i)=vecNABC(i)/abs(distNABC) ! NormABC unit vector
+        enddo
+
+        ! Calculate the vector perpendicular to the plane BCD, its norm and normalize
+        vecNBCD = cross(vecDC,vecBC) ! NormBCD vector
+        distNBCD=norm2(vecNBCD) ! Norm of the NormBCDC vector
+        do i=1,3
+            vecNBCD(i)=vecNBCD(i)/abs(distNBCD) ! NormBCD unit vector
+        enddo
+
+        ! Calculate the force contributions
+
+        kABC = 0.0_dp
+        kBCD = 0.0_dp
+
+        do i=1,3
+            kABC = kABC + WRAB(i) * abs(dot_product(VRAB(:,i), vecNABC))
+            kBCD = kBCD + WRDC(i) * abs(dot_product(VRDC(:,i), vecNBCD))
+        enddo
+
+        kABC2 = 0.0_dp
+        kABC2 = (distAB**2)*(norm2(cross(vecAB,vecBC)))**2*kABC
+        kBCD2 = 0.0_dp
+        kBCD2 = (distDC**2)*(norm2(cross(vecBC,vecCD)))**2*kBCD
+        kABCD = 1 / kABC2 + 1 / kBCD2
+        kABCD = 1 / kABCD
+
+        ! Calculate sign and the angle
+
+        vecNABC = cross(vecCB,vecAB) ! NormABC vector
+        distNABC=norm2(vecNABC) ! Norm of the NormABC vector
+        do i=1,3
+            vecNABC(i)=vecNABC(i)/abs(distNABC) ! NormABC unit vector
+        enddo
+       
+        angleABCDsign = dot_product(vecNABC,vecBA)
+        angleABCD = acos((dot_product(cross(vecBA,vecBC),cross(vecCB,vecCD)))&
+        /(sin(acos(dot_product(vecAB,vecCB)))*sin(acos(dot_product(vecBC,vecCD)))))*180.0/pi
+        angleABCD = sign(angleABCD,angleABCDsign)
+        
+        ! Print the angle
+        write(*, " (a) ")
+        write(*, " (a,F7.1,a) ", advance='NO') "Angle equal to: ", angleABCD, " °"
+        write(*, " (a) ")
+
+        ! Print the bond angle FC
+        write(*, " (a) ")
+        write(*, " (2a,I0,2a,I0,2a,I0,2a,I0,a,F7.1,a) ") "Dihedral angle FC ((1/2)k(P-P0)^2) for angle ", &
+            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
+            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), "|", &
+            trim(atmlna(atmC*3-2)), atmlnb(atmC*3-2), "|", &
+            trim(atmlna(atmD*3-2)), atmlnb(atmD*3-2), " is equal to : ", &
+            (kABCD*(HKC)), " kcal*mol^-1*rad^-2"
+
+    else 
+        stop
     end if
     stop
 end program sem_forces
