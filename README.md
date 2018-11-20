@@ -1,17 +1,18 @@
 ## What is it ?
 
-A small fortran (f03) program to calculate force constants (bonds and bond angles force constants for now) in the Amber format using Gaussian09 fchk parsed cartesian Hessian matrix.  
+A small fortran (f03) program to calculate force constants (Bonds, Angles and Torsions) using Gaussian09 fchk parsed cartesian Hessian matrix.  
 See below for format.  
 
 ## Installation
 
-Compile it with gfortran (>= 4.9) or ifort (>= 2013).  
-Ex: gfortran -framework Accelerate sem_forces.f90 -o sem_forces (using the MacOS default installed LAPACK framework)  
-  
+Compile it with gfortran (>= 4.9) or ifort (>= 2013). Need LAPACK (call DGEEV)  
+Ex:  
+gfortran -framework Accelerate sem_forces.f90 -o sem_forces (using the MacOS default installed LAPACK framework)  
+
 ## Usage
 
 Just lauch the program with the data file name as first argument  
-Ex: ./sem_forces dataWater  
+Ex: ./sem_forces dataH2O_MP2  
 
 ## Data file format
 
@@ -33,7 +34,7 @@ The parsed file is the first argument when lauching the program
 .: Fx1z1;Fy1z1;Fz1z1;Fx2z1;...  
 ...  
 
-An example for the H2O molecule is included (as dataWater file)  
+Example included (dataXXX_XXX files).  
 
 ## License
 
