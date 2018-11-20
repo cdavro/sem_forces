@@ -7,7 +7,7 @@ See below for format.
 
 Compile it with gfortran (>= 4.9) or ifort (>= 2013). Need LAPACK (call DGEEV)  
 Ex:  
-gfortran -framework Accelerate sem_forces.f90 -o sem_forces (using the MacOS default installed LAPACK framework)  
+gfortran -framework Accelerate sem_forces.f03 -o sem_forces (using the MacOS default installed LAPACK framework)  
 
 ## Usage
 
