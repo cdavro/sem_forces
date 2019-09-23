@@ -1,6 +1,7 @@
 ! Seminario method for force constant (bonds, angles and torsions)
 ! Reference: Seminario, J. M. Int. J. Quantum Chem. 1996, 60, 1271.
-! Author: Rolf David
+! Original Author: Rolf David
+! License: MIT
 ! Date: 05/09/2016
 ! Lastest modification: 20/11/2018
 ! Version: 2.0.0
@@ -39,18 +40,18 @@ program sem_forces
     integer, parameter            :: LDA = N, LDVL = N, LDVR = N
     integer, parameter            :: LWMAX = 1000
     integer                       :: INFO, LWORK
-    real(dp), dimension(3,3)      :: AM_AB, AM_CB, AM_DC, VRAB, VLAB, VRCB, VLCB, VRDC, VLDC
-    real(dp), dimension(3)        :: WRAB, WIAB, WRCB, WICB, WRDC, WIDC
+    real(dp), dimension(3,3)      :: AM_AB, AM_CB, AM_DC, VRAB, VLAB, VRCB, VLCB, VRDC, VLDC, AM_BA, VRBA, VLBA
+    real(dp), dimension(3)        :: WRAB, WIAB, WRCB, WICB, WRDC, WIDC, WRBA, WIBA
     real(dp), allocatable         :: WORK (:)
 
     ! Variables
     real(dp), allocatable         :: atmat(:,:), atmcrd (:,:)
     integer, allocatable          :: atmlnb (:), atmlan (:)
     character(len=2), allocatable :: atmlna (:)
-    real(dp), dimension(3)        :: vecAB, vecCB, vecNABC, vecPA, vecPC, vecBC, vecDC, vecNBCD, vecCD, vecBA                         ! vectors
-    real(dp)                      :: distAB, distCB, distNABC, distBC, distDC, distNBCD, distCD, distBA                                    ! distance/norm
+    real(dp), dimension(3)        :: vecAB, vecBA, vecCB, vecNABC, vecPA, vecPC, vecBC, vecDC, vecNBCD, vecCD                        ! vectors
+    real(dp)                      :: distAB, distBA, distCB, distNABC, distBC, distDC, distNBCD, distCD                                     ! distance/norm
     real(dp)                      :: angleABC, angleABCD, angleABCDsign                                                                           ! angle
-    real(dp)                      :: kAB, kCB, kABC, kBCD, kABC2, kBCD2, kABCD                                                     ! FC     
+    real(dp)                      :: kAB, kBA, kABavg, kCB, kABC, kBCD, kABC2, kBCD2, kABCD                                                     ! FC     
     integer                       :: atmA, atmB, atmC, atmD, smA, smB, smC, smD, nbatm, matsize
     integer                       :: i, j
 
@@ -106,8 +107,14 @@ program sem_forces
             AM_AB(i,j) = atmat( (smA+i), (smB+j) )
         end do
     end do
-    AM_AB = -1 * AM_AB
-
+    AM_AB = -1.0 * AM_AB
+    ! And the BA interatomic FC matrix also
+    do i=1,3
+        do j=1,3
+            AM_BA(i,j) = atmat( (smB+i), (smA+j) )
+        end do
+    end do
+    AM_BA = -1.0 * AM_BA
 !----------------------------------- BOND FORCE CONSTANTS ----------------------------------! 
     if (atmC .eq. 0 .and. atmD .eq. 0) then ! bond only
 
@@ -137,39 +144,40 @@ program sem_forces
             write(*, *) 'The algorithm failed to compute eigenvalues.'
             stop
         end if
-
-        ! Print Eigen Values & Vectors
-        write(*, " (a) ")
-        write(*, " (a) ") "Eigen Values (real) (a.u.):"
-        write(*, " (a) ")
-        do i=1,3
-            write(*, "(E14.5E2,a)", advance="no") (WRAB(i)), ""
-        end do
-
-        write(*, " (a) ")
-        write(*, " (a) ")
-        write(*, " (a) ") "(Right) Eigen Vectors:"
-        write(*, " (a) ")
-        do j=1,3
-            do i=1,3
-                write(*, " (E14.6E2,a) ", advance="no") VRAB(i,j), ""
-            end do
-            write(*, " (a) ")
-        end do
+        LWORK = -1
+        allocate(WORK(LWORK))
+        call DGEEV ('N', 'V', N, AM_BA, LDA, WRBA, WIBA, VLBA, LDVL, VRBA, LDVR, WORK, LWORK, INFO)
+        LWORK = MIN (LWMAX, INT(WORK(1)))
+        deallocate(WORK)
+        allocate(WORK(LWORK))
+        call DGEEV ('N', 'V', N, AM_BA, LDA, WRBA, WIBA, VLBA, LDVL, VRBA, LDVR, WORK, LWORK, INFO)
+        deallocate(WORK)
+        if( INFO > 0 ) then
+            write(*, *) 'The algorithm failed to compute eigenvalues.'
+            stop
+        end if
 
         ! Calculate distance vector, its norm and normalize
         do i=1,3
             vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! AB vector
         end do
+        do i=1,3
+            vecBA(i) = (atmcrd(atmA,i+2) - atmcrd(atmB,i+2)) ! BA vector
+        end do
 
         distAB = norm2(vecAB) ! Norm of AB
+        distBA = norm2(vecBA) ! Norm of BA
+
         do i=1,3
             vecAB(i) = vecAB(i)/abs(distAB) ! AB unit vector
         end do
-        
+        do i=1,3
+            vecBA(i) = vecBA(i)/abs(distBA) ! BA unit vector
+        end do
+
         ! Print the distance
         write(*, " (a) ")
-        write(*, " (a,F6.2,a) ", advance='NO') "Interatomic distance: ", (distAB * BA), " Å"
+        write(*, " (a,F6.2,a,a,F6.2,a) ", advance='NO') "Interatomic distance: ", (distAB * BA), " Å", " | ", (distBA * BA), " Å"
         write(*, " (a) ")
         write(*, " (a) ")
 
@@ -178,10 +186,18 @@ program sem_forces
         do i=1,3
             kAB = kAB + WRAB(i) * abs(dot_product(VRAB(:,i), vecAB))
         end do
-        write(*, " (2a,I0,2a,I0,a,F7.1,a) ") "Bond FC ((1/2)k(r-r0)^2) for bond ", &
-            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "|", &
-            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " is equal to : ", &
-            kAB*(HKC/(BA**2)), " kcal*mol^-1*Â^-2"
+        do i=1,3
+            kBA = kBA + WRBA(i) * abs(dot_product(VRBA(:,i), vecBA))
+        end do
+        write(*, " (a,F8.2,a,F8.2) ", advance='NO') "Bond FC: ", kAB*(HKC/(BA**2)), " | ", kBA*(HKC/(BA**2))
+        write(*, " (a) ")
+        write(*, " (a) ")
+        kABavg = (kAB + kBA)/2
+        write(*, " (2a,I0,2a,I0,a,F8.2,a,F6.2,a) ") "Ebond = (1/2)k(r-r0)^2 for bond ", &
+            trim(atmlna(atmA*3-2)), atmlnb(atmA*3-2), "-", &
+            trim(atmlna(atmB*3-2)), atmlnb(atmB*3-2), " with k =", &
+            kABavg*(HKC/(BA**2)), " kcal*mol^-1*Å^-2 and r0 =", &
+            (distAB * BA), " Å"
 
         ! Deallocate and exit
         deallocate(atmcrd)
@@ -226,7 +242,7 @@ program sem_forces
             write(*, *) 'The algorithm failed to compute eigenvalues.'
             stop
         end if
-  
+
         ! Calculate both distance vectors, their norms and normalize
         do i=1,3
             vecAB(i) = (atmcrd(atmB,i+2) - atmcrd(atmA,i+2)) ! AB vector
@@ -298,7 +314,6 @@ program sem_forces
             end do
         end do
         AM_DC = -1*AM_DC
-
         ! Call for intel MKL or LAPACK
         LWORK = -1
         allocate(WORK(LWORK))
