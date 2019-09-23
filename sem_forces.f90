@@ -3,8 +3,8 @@
 ! Original Author: Rolf David
 ! License: MIT
 ! Date: 05/09/2016
-! Lastest modification: 20/11/2018
-! Version: 2.0.0
+! Lastest modification: 23/09/2019
+! Version: 2.0.1
 
 ! Mathmodule for the cross product between two vectors
 module mathmodule
