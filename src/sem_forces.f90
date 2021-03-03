@@ -1,10 +1,11 @@
 ! Seminario method for force constant (bonds, angles and torsions)
 ! Reference: Seminario, J. M. Int. J. Quantum Chem. 1996, 60, 1271.
+! Author: Rolf David
+! Date: 09/2016
+! License: GNU AGPLv3
+! UTF-8, LF, Fortran2003
 ! Original Author: Rolf David
-! License: MIT
-! Date: 05/09/2016
-! Lastest modification: 23/09/2019
-! Version: 2.0.1
+! License: GPLv3
 
 ! Mathmodule for the cross product between two vectors
 module mathmodule
